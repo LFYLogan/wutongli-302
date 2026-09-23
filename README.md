@@ -116,11 +116,57 @@ G.scene('c1_demo', {
 
 ## 部署到 GitHub Pages
 
-1. 把仓库推到 GitHub。
-2. Settings → Pages → Source 选 `Deploy from a branch`，分支 `main`，目录 `/ (root)`。
-3. 等一分钟，网址是 `https://<你的用户名>.github.io/<仓库名>/`。
+仓库已经配好，推上去就会自动重建：
+
+```
+https://lfylogan.github.io/wutongli-302/
+```
 
 把这个链接发给任何人，手机、电脑、平板都能直接玩，不需要安装任何东西。
+
+### 方式一：git push
+
+```bash
+git add -A && git commit -m "更新"
+git push origin main
+```
+
+> 如果 `credential.helper` 指向未安装的 GCM，用 `git -c credential.helper= push origin main` 绕开，它会直接提示输入用户名和密码（密码填 Personal Access Token）。
+
+### 方式二：走 API 推送（**国内网络推荐**）
+
+`github.com:443` 在国内经常被间歇性阻断（表现为 `Failed to connect to github.com port 443`），
+但 `api.github.com` 通常一直可达。这个脚本用 Git Data API 直接提交，**完全绕开被阻断的域名**：
+
+```bash
+$env:GH_TOKEN = '你的令牌'
+node tools/deploy-api.mjs 改动文件1 改动文件2 ...
+```
+
+它会先自检令牌权限（`push=true` 才继续），然后建 blob → tree → commit → 更新 `main`，
+一次提交完成，Pages 约 1 分钟后自动重建。
+
+列出上次推送以来改了哪些文件：
+
+```bash
+git diff --name-status <上次成功的commit>..HEAD
+```
+
+令牌权限：经典令牌需要 `public_repo`（公开仓库够用）或 `repo`；
+细粒度令牌需要 **Contents: Read and write**，且 Repository access 必须显式勾选该仓库
+（选 "Public repositories" 只给读权限，会得到 `403 Permission denied`）。
+
+### 方式三：SSH over 443
+
+如果 `api.github.com` 也被挡，用这条通道（实测在国内多数网络下可达）：
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_wutongli -N ""
+# 把 ~/.ssh/id_ed25519_wutongli.pub 贴到 https://github.com/settings/ssh/new
+git remote set-url origin ssh://git@ssh.github.com:443/LFYLogan/wutongli-302.git
+git config core.sshCommand "ssh -i ~/.ssh/id_ed25519_wutongli -o IdentitiesOnly=yes"
+git push -u origin main
+```
 
 ---
 
