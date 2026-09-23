@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>梧桐里 302 · 深夜加班恋爱物语</title>
+<meta name="description" content="一款都市职场题材的中文文字恋爱闯关游戏：三个深夜，三段人生，九种结局。">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-bg="night">
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<!-- ============ 标题界面 ============ -->
+<section id="screen-title" class="screen is-active">
+  <div class="title-inner">
+    <p class="title-kicker">都市 / 职场 / 恋爱 文字闯关</p>
+    <h1 class="title-main">梧桐里 <span class="num">302</span></h1>
+    <p class="title-sub">深夜便利店的灯，和没有人替你按掉的加班灯</p>
+    <p class="title-tag">三个深夜 · 三段人生 · <b>九种结局</b></p>
+
+    <nav class="title-menu">
+      <button class="btn btn-primary" data-act="new">开 始 新 的 故 事</button>
+      <button class="btn" data-act="continue" id="btn-continue">继 续 上 次</button>
+      <button class="btn" data-act="gallery">结 局 图 鉴 <span class="badge" id="gallery-badge">0/9</span></button>
+      <button class="btn" data-act="settings">设 置</button>
+    </nav>
+
+    <p class="title-foot">
+      <span id="progress-line">尚未开始</span>
+      <button class="link" data-act="share">复制分享链接</button>
+    </p>
+  </div>
+</section>
+
+<!-- ============ 角色命名 ============ -->
+<section id="screen-name" class="screen">
+  <div class="title-inner">
+    <p class="title-kicker">入职登记表</p>
+    <h2 class="title-main small">你叫什么名字？</h2>
+    <p class="title-sub">星芒文化创意部 · 4A 区 07 号工位 · 已为你保留</p>
+    <input id="name-input" class="name-input" type="text" maxlength="8" value="陈默" autocomplete="off" spellcheck="false">
+    <p class="title-hint" id="name-hint">最多 8 个字，可以是任何名字。</p>
+    <nav class="title-menu row">
+      <button class="btn btn-primary" data-act="confirm-name">确 认</button>
+      <button class="btn" data-act="back-title">返 回</button>
+    </nav>
+  </div>
+</section>
+
+<!-- ============ 游戏主界面 ============ -->
+<section id="screen-game" class="screen">
+  <header class="hud">
+    <div class="hud-left">
+      <span class="hud-chapter" id="hud-chapter">序章</span>
+      <span class="hud-night" id="hud-night"></span>
+    </div>
+    <div class="hud-right" id="hud-stats">
+      <button class="hud-stat" id="stat-wan" title="苏晚 好感度"><i>晚</i><b>0</b><span class="bar"><em></em></span></button>
+      <button class="hud-stat" id="stat-xia" title="林知夏 好感度"><i>夏</i><b>0</b><span class="bar"><em></em></span></button>
+      <button class="hud-stat" id="stat-he"  title="顾清和 好感度"><i>和</i><b>0</b><span class="bar"><em></em></span></button>
+      <button class="hud-stat warn" id="stat-stress" title="压力"><i>压</i><b>20</b><span class="bar"><em></em></span></button>
+      <button class="hud-stat good" id="stat-perf" title="业绩"><i>绩</i><b>30</b><span class="bar"><em></em></span></button>
+      <button class="hud-stat clue" id="stat-clue" title="已掌握的关键线索"><i>线</i><b>0</b></button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="stage-vignette"></div>
+    <div class="stage-weather" id="stage-weather"></div>
+  </main>
+
+  <div class="textwrap">
+    <div class="textbox" id="textbox">
+      <div class="speaker" id="speaker"></div>
+      <div class="text" id="text"></div>
+      <div class="advance" id="advance">点击继续 ▾</div>
+    </div>
+    <div class="choices" id="choices"></div>
+  </div>
+
+  <footer class="toolbar">
+    <button class="tool" data-act="backlog">回顾</button>
+    <button class="tool" data-act="saves">存档</button>
+    <button class="tool" data-act="settings">设置</button>
+    <button class="tool" data-act="share">分享</button>
+    <button class="tool danger" data-act="quit">回标题</button>
+  </footer>
+</section>
+
+<!-- ============ 结局界面 ============ -->
+<section id="screen-ending" class="screen">
+  <div class="ending-inner">
+    <p class="ending-kicker" id="ending-kicker">ENDING</p>
+    <h2 class="ending-title" id="ending-title">结局</h2>
+    <p class="ending-sub" id="ending-sub"></p>
+    <div class="ending-text" id="ending-text"></div>
+    <p class="ending-stat" id="ending-stat"></p>
+    <nav class="title-menu row">
+      <button class="btn btn-primary" data-act="gallery">查 看 图 鉴</button>
+      <button class="btn" data-act="restart">再 玩 一 次</button>
+      <button class="btn" data-act="back-title">回 到 标 题</button>
+    </nav>
+  </div>
+</section>
+
+<!-- ============ 图鉴 ============ -->
+<section id="screen-gallery" class="screen">
+  <div class="panel-inner">
+    <h2 class="panel-title">结局图鉴 <span class="badge" id="gallery-badge-2">0/9</span></h2>
+    <p class="panel-sub" id="gallery-sub">已经抵达的结局会永久保存在这台设备的浏览器里。</p>
+    <div class="gallery" id="gallery-grid"></div>
+    <nav class="title-menu row"><button class="btn" data-act="back-title">返 回</button></nav>
+  </div>
+</section>
+
+<!-- ============ 通用弹窗 ============ -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="modal-title">标题</h3><button class="icon-btn" data-act="close-modal">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="js/engine.js"></script>
+
+<!-- 剧情数据：按顺序加载，顺序即章节顺序 -->
+<script src="story/00-prologue.js"></script>
+<script src="story/01-chapter1.js"></script>
+<script src="story/02-chapter2.js"></script>
+<script src="story/03-chapter3.js"></script>
+<script src="story/04-chapter4.js"></script>
+<script src="story/05-chapter5.js"></script>
+<script src="story/09-endings.js"></script>
+<script src="story/99-side.js"></script>
+
+<script>G.boot();</script>
+</body>
+</html>
