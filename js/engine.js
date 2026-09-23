@@ -340,44 +340,22 @@ function setBG(bg, weather) {
 }
 
 /* ---------------- 立绘 ---------------- */
-var CHAR_KEY = { '苏晚': 'wan', '林知夏': 'xia', '顾清和': 'gu', '江迟': 'chiang' };
-var PORTRAIT_MOODS = ['normal', 'smile', 'sad', 'surprise'];
+var CHAR_KEY = { '苏晚': 'wan', '林知夏': 'xia', '顾清和': 'gu', '江迟': 'chiang', '郑维': 'zheng' };
 var curPortrait = '';
 var enterTimer = null;
 
-/* 情绪关键词：场景没写 mood 时自动推断，写了就以场景为准 */
-var MOOD_WORDS = [
-  ['smile', ['笑了', '笑出来', '笑起来', '微微一笑', '弯起', '眯', '扬起嘴角', '忍不住笑', '笑了一下', '笑得']],
-  ['sad', ['哭', '眼泪', '眼眶', '红了眼', '声音很低', '发抖', '声音很轻', '沉默了很久', '别过脸', '鼻音', '哽']],
-  ['surprise', ['愣', '怔', '睁大', '停了一瞬', '顿住', '惊讶', '突然抬头', '没想到', '没想到']]
-];
-
-function inferMood(text) {
-  var t = String(text || '');
-  var best = 'normal', bestN = 0;
-  for (var i = 0; i < MOOD_WORDS.length; i++) {
-    var n = 0, ws = MOOD_WORDS[i][1];
-    for (var j = 0; j < ws.length; j++) {
-      var idx = t.indexOf(ws[j]);
-      while (idx >= 0) { n++; idx = t.indexOf(ws[j], idx + 1); }
-    }
-    if (n > bestN) { bestN = n; best = MOOD_WORDS[i][0]; }
-  }
-  return bestN > 0 ? best : 'normal';
-}
-
-function portraitSrc(who, mood) {
+function portraitSrc(who) {
   var key = CHAR_KEY[who];
   if (!key) return null;
-  var g = (key === 'chiang') ? 'm' : (state.loveGender === 'm' ? 'm' : 'f');
-  var m = PORTRAIT_MOODS.indexOf(mood) >= 0 ? mood : 'normal';
-  return 'assets/portraits/' + key + '_' + g + '_' + m + '.svg';
+  /* 江迟与郑维是固定男性；三位攻略角色的性别跟随玩家开局的选择 */
+  var g = (key === 'chiang' || key === 'zheng') ? 'm' : (state.loveGender === 'm' ? 'm' : 'f');
+  return 'assets/cast/' + key + '_' + g + '.jpg';
 }
 
-function updatePortrait(who, text, mood) {
+function updatePortrait(who) {
   var box = $('portrait'), img = $('portrait-img');
   if (!box || !img) return;
-  var src = who ? portraitSrc(who, mood || inferMood(text)) : null;
+  var src = who ? portraitSrc(who) : null;
   if (!src) { hidePortrait(); return; }
   box.dataset.who = CHAR_KEY[who];
   if (src !== curPortrait) {
@@ -401,12 +379,11 @@ function hidePortrait() {
 }
 
 function preloadPortraits() {
-  if (typeof Image !== 'function' || !state.loveGender) return;
+  if (typeof Image !== 'function') return;
+  var g = state.loveGender === 'm' ? 'm' : 'f';
   ['wan', 'xia', 'gu'].forEach(function (k) {
-    PORTRAIT_MOODS.forEach(function (m) {
-      var im = new Image();
-      im.src = 'assets/portraits/' + k + '_' + state.loveGender + '_' + m + '.svg';
-    });
+    var im = new Image();
+    im.src = 'assets/cast/' + k + '_' + g + '.jpg';
   });
 }
 
@@ -437,7 +414,7 @@ function goto(id) {
   state.hist.push({ who: line.who, text: flatten(rawText) });
   if (state.hist.length > MAX_HIST) state.hist.splice(0, state.hist.length - MAX_HIST);
 
-  updatePortrait(sc.who, flatten(rawText), sc.mood);
+  updatePortrait(sc.who);
 
   // 终止场景（结局）
   if (sc.ending) {

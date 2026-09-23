@@ -2,6 +2,10 @@
 node_modules/
 package-lock.json
 
+# 原始人像大图（单张 2-3MB，共 25MB）。
+# 已由 tools/build-cast.ps1 压缩成 assets/cast/*.jpg 后才能上线。
+images/
+
 # 立绘审阅与浏览器调试的中间产物
 tools/_sheet.svg
 tools/_sheet.png
@@ -9,3 +13,9 @@ tools/_*.png
 tools/_dom.html
 _debug.html
 _img.html
+
+# 备用立绘（本地保留，不发布）
+assets/cast/spare_*.jpg
+
+# 已弃用的手写 SVG 立绘（本地保留供对比，不发布）
+assets/portraits/

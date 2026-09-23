@@ -104,39 +104,59 @@ body[data-bg="night"]::after{content:"";position:fixed;inset:0;z-index:-1;pointe
   background-image:radial-gradient(rgba(255,255,255,.09) 1px, transparent 1px);background-size:3px 3px}
 
 /* ---------- 立绘 ----------
-   注意：.portrait 必须显式给出宽度。
+   尺寸：必须显式给出宽高。
    只设 height + right + width:auto 时，绝对定位元素会走 shrink-to-fit，
    而百分比高度在推导首选宽度时会被当成 auto，浏览器布局与绘制算出的
    结果可能不一致（实测会渲染成原图七成大小并贴右边缘）。
-   这里用 width + aspect-ratio 把尺寸彻底钉死。 */
+
+   尺寸还必须与"文本框有多长"无关：舞台高度会随文本与选项数量变化，
+   所以这里锚定舞台【顶部】、高度用视口相对单位（62vh），
+   再以 3:4（--pw × 4/3）封顶。这样每个场景里头像的大小和位置都一样；
+   舞台偏矮时裁掉的是底部，而底部本来就有渐隐。
+
+   融和：立绘是带背景的整幅位图（没有透明通道），
+   所以用下半部渐隐的遮罩 + 暗角把它融进场景，避免一块生硬的矩形。 */
 .portrait{
-  position:absolute;bottom:0;right:4%;
-  width:min(44%,380px);
-  height:100%;
+  --pw: min(70vw, 310px);
+  position:absolute;top:0;right:4%;
+  width:var(--pw);
+  aspect-ratio:3 / 4;              /* 高度由宽度推出来，不依赖容器高度 */
+  max-height:62vh;                 /* 矮屏时封顶，避免超出舞台太多 */
   opacity:1;                       /* 默认可见：动效只是装饰，不承担"能不能显示" */
   transition:opacity .4s ease;
   pointer-events:none;
-  filter:drop-shadow(0 18px 40px rgba(0,0,0,.55));
 }
 .portrait.hide{opacity:0}
 .portrait img{
-  width:100%;height:100%;display:block;object-fit:contain;
-  animation:breathe 7s ease-in-out infinite;
+  width:100%;height:100%;display:block;
+  object-fit:cover;object-position:50% 0%;
+  border-radius:20px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 50%,rgba(0,0,0,.55) 73%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(180deg,#000 0,#000 50%,rgba(0,0,0,.55) 73%,rgba(0,0,0,0) 100%);
+  filter:drop-shadow(0 16px 36px rgba(0,0,0,.6));
+  animation:breathe 8s ease-in-out infinite;
+}
+/* 顶部与底部叠一层暗角，让画面和场景的深色底融合 */
+.portrait::after{
+  content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,10,14,.42) 0%,rgba(8,10,14,.06) 18%,
+    rgba(8,10,14,0) 44%,rgba(8,10,14,.5) 84%,rgba(8,10,14,.75) 100%);
 }
 @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 @keyframes portraitIn{from{opacity:0}to{opacity:1}}
 .portrait.enter{animation:portraitIn .5s ease}
 
+@media(min-width:620px){
+  .portrait{--pw:min(44vw,380px);right:4%}
+}
 @media(max-width:619px){
-  .portrait{right:auto;left:50%;transform:translateX(-50%);
-    width:min(78%,330px);height:96%;bottom:-4px}
-  .portrait img{opacity:.96}
+  .portrait{right:auto;left:50%;transform:translateX(-50%)}
 }
 @media(min-width:900px){
-  .portrait{right:6%;width:min(40%,390px)}
+  .portrait{--pw:min(32vw,390px);right:6%}
 }
 @media(max-height:560px){
-  .portrait{width:min(32%,250px)}
+  .portrait{--pw:min(46vw,230px)}
 }
 
 /* ---------- 开局设定 ---------- */

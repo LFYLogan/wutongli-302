@@ -258,18 +258,33 @@ text: function (s) {
 场景里只要写了 `who`，引擎就会自动显示对应立绘。文件名规则：
 
 ```
-assets/portraits/{角色}_{性别}_{情绪}.svg
-  角色：wan 苏晚 / xia 林知夏 / gu 顾清和 / chiang 江迟
-  性别：f / m            （江迟固定 m）
-  情绪：normal / smile / sad / surprise
+assets/cast/{角色}_{性别}.jpg
+  角色：wan 苏晚 / xia 林知夏 / gu 顾清和 / chiang 江迟 / zheng 郑维
+  性别：f / m
+        —— 三位攻略角色的性别跟随玩家开局选择；
+           江迟与郑维是固定男性。
 ```
 
-- 情绪优先级：场景的 `mood: 'smile'` **＞** 引擎按正文关键词自动推断 **＞** `normal`。
-- 想精确控制某一句的表情，加一个字段即可：`{ who: '苏晚', mood: 'sad', text: '…' }`
-- 立绘全部由 `tools/gen-portraits.mjs` 参数化生成。改配色/发型/服装只改那个文件里的 `PEOPLE` 表，然后 `node tools/gen-portraits.mjs`。
-- **想换成真人绘制的图**：把同名 PNG/JPG 丢进 `assets/portraits/`，再把引擎里 `portraitSrc()` 的后缀从 `.svg` 改成对应的即可，其余代码不用动。
+引擎里的映射表：
 
-改完立绘跑 `node tools/check-portraits.mjs`，它会渲染成 PNG 并逐像素检查覆盖率、五官位置、左右对称与底部渐隐。
+```js
+var CHAR_KEY = { '苏晚':'wan', '林知夏':'xia', '顾清和':'gu', '江迟':'chiang', '郑维':'zheng' };
+```
+
+- **一个角色一张图**（不再有表情变体）。想加表情就扩文件名并在 `portraitSrc()` 里拼进去。
+- **立绘是带背景的整幅位图，没有透明通道**。所以 `.portrait img` 用了下半部渐隐的遮罩
+  （`mask-image`）把底边融进场景，再叠一层 `.portrait::after` 暗角，避免出现生硬的矩形。
+- **尺寸必须显式给宽高**，见 `css/style.css` 里 `.portrait` 上方的长注释：
+  只给 `height` 会让绝对定位元素走 shrink-to-fit，布局与绘制结果会不一致；
+  用百分比做高度还会让立绘随文本框长短忽大忽小，所以锚定舞台顶部 + `vw` 定宽 + `aspect-ratio`。
+
+**换图流程**：把原始大图丢进 `images/`（文件名里带上性格描述就行），
+然后 `powershell -File tools/build-cast.ps1` —— 它会按关键词映射角色、压到 720×960 的 JPEG。
+映射表在脚本顶部的 `$map`，改那里就能换人。
+`images/` 已被 gitignore（原图 25MB），只有压缩后的 `assets/cast/*.jpg`（约 1MB）进仓库。
+
+**不要用** `tools/gen-portraits.mjs` 生成的那套 SVG 立绘（`assets/portraits/`），
+那是最初的手写矢量版本，已经不用了。
 
 ---
 
