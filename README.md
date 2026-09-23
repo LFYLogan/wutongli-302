@@ -13,6 +13,9 @@
 
 为了省钱，你搬进梧桐里 7 号楼 **302 室**。深夜便利店的灯、没有人替你按掉的加班灯，和三个各自抱着秘密的人。
 
+**开局先选两件事**：你叫什么名字 · 你的性别（男生 / 女生 / 不想说） · 你想攻略（女生 / 男生）。
+三位角色的**剧情、秘密与九个结局完全一样**，只会换成对应性别的立绘与称呼 —— 男生女生都能玩，也都能选到想看的人。
+
 - **6 个夜晚，每晚只够去一个地方** —— 陪伴是有代价的，选了谁就欠了谁。
 - **3 位可攻略角色**：苏晚（合租室友 / 插画师）、林知夏（便利店夜班 / 考研二战）、顾清和（创意总监 / 你的上司）。
 - **3 条关键线索**：散落在三个人手里。凑齐才能解锁隐藏真结局线。
@@ -28,6 +31,8 @@
 
 ## 特性
 
+- **全人物立绘**：4 位角色 × 男女两版 × 4 种情绪，共 28 张，纯手写 SVG（无外部素材、无版权问题）
+- **性别自选 + 性转模式**：896 处代词动态化，三种性别组合都能完整通关
 - 手机 / 平板 / 桌面自适应，触控友好，支持键盘操作（`空格` 推进、`1`–`9` 选择、`L` 回顾、`Esc` 关闭）
 - 3 个手动存档位 + 自动存档（回到最近一次决策点，不会卡在结局里）
 - 对话回顾（backlog）、线索档案、结局图鉴
@@ -42,19 +47,25 @@
 直接双击 `index.html`。或者起一个静态服务器（推荐，避免个别浏览器对 `file://` 的限制）：
 
 ```bash
-python -m http.server 8123
-# 然后打开 http://127.0.0.1:8123
+node tools/serve.mjs          # → http://127.0.0.1:8123/
 ```
+
+> 不用 `python -m http.server`：Windows 上中文主机名会让 `socket.getfqdn()` 抛 `UnicodeDecodeError`。
+
+立绘审阅页：`http://127.0.0.1:8123/tools/preview.html`
 
 ## 开发工具
 
 ```bash
-node tools/validate.mjs      # 剧情图校验：断链 / 不可达场景 / 结局可达性 / 关键 flag
-node tools/playtest.mjs      # 自动试玩：用最小 DOM 桩驱动引擎跑完 9 条路线
+node tools/validate.mjs       # 剧情图校验：断链 / 不可达场景 / 结局可达性 / 关键 flag
+node tools/playtest.mjs       # 自动试玩：驱动引擎跑完 9 条路线 + 4 种性别组合渲染审计
 node tools/playtest.mjs --trace --verbose   # 附压力轨迹与完整路线
+
+node tools/gen-portraits.mjs --sheet        # 重新生成立绘 + 审阅接触表
+node tools/check-portraits.mjs              # 逐像素检查立绘（覆盖率/五官位置/对称/渐隐）
 ```
 
-两个脚本都是零依赖的纯 Node，改完剧情跑一遍就知道有没有写坏。
+全部零依赖（只有立绘光栅化需要 `npm i -D @resvg/resvg-js`）。改完剧情跑一遍就知道有没有写坏。
 
 ---
 
@@ -63,7 +74,8 @@ node tools/playtest.mjs --trace --verbose   # 附压力轨迹与完整路线
 ```
 index.html            外壳（纯静态，按顺序加载剧情文件）
 css/style.css         样式（深色「深夜加班 / 便利店灯」气质）
-js/engine.js          引擎：分支推进 / 数值 / 存档 / 图鉴 / 打字机 / 音效
+js/engine.js          引擎：分支推进 / 数值 / 立绘 / 性别代词 / 存档 / 图鉴 / 打字机 / 音效
+assets/portraits/     28 张 SVG 立绘
 story/00-prologue.js  序章「4A-07」
 story/01-chapter1.js  第一章「梧桐里 302」
 story/02-chapter2.js  第二章「加班的形状」（夜晚 1–3）
@@ -71,9 +83,9 @@ story/03-chapter3.js  第三章「各自的深夜」（夜晚 4–6、线索、�
 story/04-chapter4.js  第四章「一年前」（真相汇聚）
 story/05-chapter5.js  第五章「提案日」（最终抉择与分流）
 story/09-endings.js   9 个结局
-story/99-side.js      线索档案数据
-STORY_BIBLE.md        故事圣经 + 剧情 DSL 规范（改剧情前必读）
-tools/                校验器与自动试玩器
+story/99-side.js      线索档案 + 组合台词工具
+STORY_BIBLE.md        故事圣经 + 剧情 DSL / 性别系统 / 立绘规范（改剧情前必读）
+tools/                校验器、试玩器、立绘生成器、审阅页
 ```
 
 ---

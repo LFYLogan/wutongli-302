@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>立绘审阅 · 梧桐里 302</title>
+<style>
+  :root{--line:rgba(255,255,255,.10);--text:#e8eaf0;--muted:#98a1b3;--amber:#e8b96a}
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b0d12;color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif;
+    padding:26px 20px 60px;line-height:1.7}
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:.06em}
+  h2{font-size:15px;margin:34px 0 12px;color:var(--amber);letter-spacing:.14em;font-weight:600}
+  p.lead{color:var(--muted);font-size:13.5px;margin:0 0 8px;max-width:760px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .card{background:linear-gradient(180deg,#161a24,#0e1119);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;position:relative}
+  .card img{display:block;width:100%;height:auto}
+  .card .lbl{position:absolute;left:0;right:0;bottom:0;padding:6px 9px;font-size:11px;
+    background:linear-gradient(0deg,rgba(0,0,0,.85),transparent);color:#c7cede;letter-spacing:.04em}
+  .stage{position:relative;height:520px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+    background:radial-gradient(80% 60% at 50% 0%,rgba(210,255,235,.20),transparent 62%),
+      radial-gradient(60% 50% at 50% 110%,rgba(127,209,166,.14),transparent 60%),
+      linear-gradient(180deg,#0a1210,#050807)}
+  .stage .pp{position:absolute;bottom:-6px;right:6%;height:96%;filter:drop-shadow(0 18px 40px rgba(0,0,0,.55))}
+  .stage .tb{position:absolute;left:20px;right:20px;bottom:20px;padding:18px 20px;border-radius:16px;
+    background:rgba(20,23,32,.9);border:1px solid var(--line);backdrop-filter:blur(12px);font-size:16px}
+  .stage .tb .sp{position:absolute;top:-13px;left:18px;padding:3px 13px;border-radius:20px;font-size:13px;
+    background:#141720;border:1px solid rgba(127,209,166,.5);color:#7fd1a6}
+  .note{font-size:12.5px;color:#69717f;margin-top:10px}
+  code{background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px;font-size:12px}
+</style>
+</head>
+<body>
+  <h1>立绘审阅 · 梧桐里 302</h1>
+  <p class="lead">全部由 <code>tools/gen-portraits.mjs</code> 参数化生成，纯矢量、无外部素材。
+    如果你觉得哪一套不合适，直接告诉我改哪个角色的哪一项（发型 / 配色 / 服装 / 表情），
+    或者说「换成真人画的图」，我把文件替换掉即可，代码不用动。</p>
+  <p class="note">情绪一共四种：normal / smile / sad / surprise。游戏里场景自带 mood 就用场景的，没有就按文本关键词自动推断。</p>
+
+  <h2>苏晚 · 女版</h2>
+  <div class="grid" id="g-wan_f"></div>
+  <h2>苏晚 · 男版</h2>
+  <div class="grid" id="g-wan_m"></div>
+
+  <h2>林知夏 · 女版</h2>
+  <div class="grid" id="g-xia_f"></div>
+  <h2>林知夏 · 男版</h2>
+  <div class="grid" id="g-xia_m"></div>
+
+  <h2>顾清和 · 女版</h2>
+  <div class="grid" id="g-gu_f"></div>
+  <h2>顾清和 · 男版</h2>
+  <div class="grid" id="g-gu_m"></div>
+
+  <h2>江迟（隐藏线 · 固定男）</h2>
+  <div class="grid" id="g-chiang_m"></div>
+
+  <h2>在游戏里的样子</h2>
+  <div class="stage">
+    <img class="pp" src="../assets/portraits/xia_f_smile.svg" alt="">
+    <div class="tb"><span class="sp">林知夏</span>
+      「你天天来啊。」<br>{ta}嘴上这么说，人已经从柜台后面出来了，手里拿着两个杯子——<b>她已经准备了两个。</b></div>
+  </div>
+
+<script>
+const MOODS = ['normal','smile','sad','surprise'];
+const CN = { normal:'平静', smile:'微笑', sad:'难过', surprise:'惊讶' };
+for (const g of ['wan_f','wan_m','xia_f','xia_m','gu_f','gu_m','chiang_m']) {
+  const box = document.getElementById('g-' + g.replace('_','-'));
+  if (!box) continue;
+  box.innerHTML = MOODS.map(m =>
+    `<div class="card"><img src="../assets/portraits/${g}_${m}.svg" alt="${g} ${m}" loading="lazy">
+     <div class="lbl">${g}_${m} · ${CN[m]}</div></div>`).join('');
+}
+</script>
+</body>
+</html>

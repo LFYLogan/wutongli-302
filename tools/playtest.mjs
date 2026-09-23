@@ -3,7 +3,7 @@
    用最小的 DOM 桩驱动引擎，按策略走完 9 条路线，
    验证每个结局是否真的能抵达，并打印终局数值。
    =========================================================== */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +13,8 @@ const STORY_DIR = join(ROOT, 'story');
 const ENGINE_SRC = readFileSync(join(ROOT, 'js', 'engine.js'), 'utf8');
 const STORY_FILES = readdirSync(STORY_DIR).filter((f) => f.endsWith('.js')).sort();
 const STORY_SRCS = STORY_FILES.map((f) => [f, readFileSync(join(STORY_DIR, f), 'utf8')]);
+/* 浏览器里 story/*.js 是多个 <script>，共享全局作用域；这里拼成一个源串执行才等价 */
+const STORY_COMBINED = STORY_SRCS.map(([f, s]) => `/* ==== ${f} ==== */\n${s}`).join('\n;\n');
 
 /* ===========================================================
    最小 DOM 桩
@@ -24,6 +26,7 @@ function makeElement(id) {
     _listeners: {},
     _html: '',
     _q: {},
+    _attrs: {},
     dataset: {},
     style: {},
     textContent: '',
@@ -41,8 +44,9 @@ function makeElement(id) {
     },
     appendChild(c) { this._children.push(c); return c; },
     removeChild(c) { const i = this._children.indexOf(c); if (i >= 0) this._children.splice(i, 1); return c; },
-    removeAttribute() {},
-    setAttribute() {},
+    removeAttribute(k) { delete this._attrs[k]; },
+    setAttribute(k, v) { this._attrs[k] = String(v); },
+    getAttribute(k) { return this._attrs[k] === undefined ? null : this._attrs[k]; },
     addEventListener(t, fn) { (this._listeners[t] = this._listeners[t] || []).push(fn); },
     click() { (this._listeners.click || []).forEach((fn) => fn({ target: this })); },
     closest() { return null; },
@@ -107,10 +111,8 @@ function bootGame() {
   const defs = {};
   const origScene = G.scene;
   G.scene = function (id, def) { defs[id] = def || {}; return origScene(id, def); };
-  for (const [name, src] of STORY_SRCS) {
-    try { new Function(src)(); }
-    catch (e) { throw new Error(`${name} 执行失败：${e.message}`); }
-  }
+  try { new Function(STORY_COMBINED)(); }
+  catch (e) { throw new Error(`剧情文件执行失败：${e.message}`); }
   G.boot();
   return { G, defs, doc, choicesBox: doc.getElementById('choices') };
 }
@@ -281,6 +283,64 @@ const ROUTES = [
 ];
 
 /* ===========================================================
+   渲染审计：把一条完整路线跑一遍，逐屏检查
+     · 有没有漏替换的占位符（{ta} / {name} / …）
+     · 有没有 undefined / NaN 漏进正文
+     · 每个说话人是不是都有对应的立绘文件，且文件真的存在
+   =========================================================== */
+function auditRender(cfg, pick, label) {
+  const { G, defs, choicesBox, doc } = bootGame();
+  const state = G.getState();
+  state.mcGender = cfg.mc;
+  state.loveGender = cfg.lg;
+  G.goto('start');
+
+  const textEl = doc.getElementById('text');
+  const endEl = doc.getElementById('ending-text');
+  const pBox = doc.getElementById('portrait');
+  const pImg = doc.getElementById('portrait-img');
+
+  const seenTokens = new Set();
+  const missingArt = new Set();
+  const speakers = new Set();
+  let screens = 0, portraitScreens = 0, steps = 0;
+
+  const checkText = (html) => {
+    const s = String(html || '');
+    screens++;
+    for (const m of s.matchAll(/\{[a-zA-Z]+\}/g)) seenTokens.add(m[0]);
+    if (/\bundefined\b/.test(s)) seenTokens.add('undefined');
+    if (/\bNaN\b/.test(s)) seenTokens.add('NaN');
+  };
+
+  while (!state.ending && steps++ < 5000) {
+    const def = defs[state.sceneId];
+    if (!def) throw new Error(`${label}: 未知场景 ${state.sceneId}`);
+    checkText(textEl.innerHTML);
+
+    const src = pImg.getAttribute('src');
+    if (pBox.classList.contains('on') && src) {
+      portraitScreens++;
+      speakers.add(def.who || '?');
+      if (!existsSync(join(ROOT, src))) missingArt.add(src);
+    }
+    const visible = (def.choices || []).filter((c) => {
+      try {
+        if (!c.if) return true;
+        return typeof c.if === 'function' ? !!c.if(state) : !!state.flags[c.if];
+      } catch (e) { return false; }
+    });
+    if (!visible.length) break;
+    const btn = choicesBox.children[pick(visible, state)];
+    if (!btn) break;
+    btn.click();
+  }
+  checkText(endEl.innerHTML);
+
+  return { seenTokens: [...seenTokens], missingArt: [...missingArt], speakers: [...speakers], screens, portraitScreens };
+}
+
+/* ===========================================================
    跑
    =========================================================== */
 const verbose = process.argv.includes('--verbose');
@@ -320,5 +380,30 @@ if (errors.length) {
   for (const e of errors) console.log('  • ' + e);
   process.exit(1);
 }
-console.log('\n🎉 九条路线全部抵达预期结局。\n');
+
+/* ===========================================================
+   渲染审计：三种性别组合各跑一遍完整路线
+   =========================================================== */
+console.log('\n════════ 渲染审计 ════════\n');
+const AUDITS = [
+  { cfg: { mc: 'x', lg: 'f' }, label: '性别未说明 × 攻略女生', pick: ROUTES[8].pick },
+  { cfg: { mc: 'm', lg: 'f' }, label: '男主角 × 攻略女生', pick: ROUTES[8].pick },
+  { cfg: { mc: 'f', lg: 'm' }, label: '女主角 × 攻略男生', pick: ROUTES[8].pick },
+  { cfg: { mc: 'm', lg: 'm' }, label: '男主角 × 攻略男生', pick: ROUTES[0].pick }
+];
+let auditFail = 0;
+for (const a of AUDITS) {
+  const r = auditRender(a.cfg, a.pick, a.label);
+  const bad = r.seenTokens.filter((t) => t !== 'undefined' && t !== 'NaN');
+  const bad2 = r.seenTokens.filter((t) => t === 'undefined' || t === 'NaN');
+  const ok = !bad.length && !bad2.length && !r.missingArt.length && r.portraitScreens > 0;
+  if (!ok) auditFail++;
+  console.log(`${ok ? '✅' : '❌'} ${a.label.padEnd(18, '　')} 屏数${String(r.screens).padStart(3)} ` +
+    `带立绘${String(r.portraitScreens).padStart(3)} 说话人[${r.speakers.join(' ')}]`);
+  if (bad.length) console.log('     ⚠️ 未替换的占位符：' + bad.join(' '));
+  if (bad2.length) console.log('     ⚠️ 正文出现：' + bad2.join(' '));
+  if (r.missingArt.length) console.log('     ⚠️ 立绘文件缺失：\n        ' + r.missingArt.join('\n        '));
+}
+if (auditFail) { console.log(`\n❌ ${auditFail} 项渲染审计未通过\n`); process.exit(1); }
+console.log('\n🎉 九条路线全部抵达预期结局，三种性别组合渲染无误、立绘齐全。\n');
 process.exit(0);

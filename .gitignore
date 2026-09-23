@@ -1,0 +1,7 @@
+# 依赖与开发产物：不进入仓库，也不部署
+node_modules/
+package-lock.json
+
+# 立绘审阅用的中间产物
+tools/_sheet.svg
+tools/_sheet.png

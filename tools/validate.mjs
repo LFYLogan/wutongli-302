@@ -28,13 +28,34 @@ function clue(id, meta) { clues.set(id, meta || {}); }
 globalThis.G = { scene, ending, clue };
 
 const files = readdirSync(STORY).filter((f) => f.endsWith('.js')).sort();
-for (const f of files) {
-  const src = readFileSync(join(STORY, f), 'utf8');
+
+/* 浏览器里 story/*.js 是多个 <script>，共享同一个全局作用域。
+   所以这里也把全部文件拼成一个源串执行，才能真实反映
+   "文件 A 里定义的函数，文件 B 能不能调用"。 */
+{
+  const parts = [];
+  const offsets = [];
+  for (const f of files) {
+    offsets.push({ f, start: parts.join('').length });
+    parts.push(readFileSync(join(STORY, f), 'utf8'));
+  }
+  const combined = parts.join('\n;\n');
   try {
-    // 用 Function 构造器执行，等价于浏览器的 <script> 语义（无模块作用域）
-    new Function(src)();
+    new Function(combined)();
   } catch (e) {
-    errors.push(`${f} 执行失败：${e.message}`);
+    // 把报错位置映射回具体文件
+    const m = /<anonymous>:(\d+)/.exec(e.stack || '');
+    let where = '';
+    if (m) {
+      const line = Number(m[1]);
+      let acc = 0;
+      for (const o of offsets) {
+        const lines = readFileSync(join(STORY, o.f), 'utf8').split('\n').length + 1;
+        if (line <= acc + lines) { where = `（约在 ${o.f} 第 ${line - acc} 行）`; break; }
+        acc += lines;
+      }
+    }
+    errors.push(`剧情文件执行失败${where}：${e.message}`);
   }
 }
 

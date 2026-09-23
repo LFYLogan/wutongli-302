@@ -42,6 +42,7 @@ var cluesDef = Object.create(null);
 
 var state    = newState();
 var settings = { speed: 'normal', sfx: true, skipRead: false };
+var setup    = { mcGender: 'x', loveGender: 'f' };
 var gallery  = {};   // { endingId: timestamp }
 
 var typingTimer = null;
@@ -52,8 +53,10 @@ var storyReady = false;
 /* ---------------- 状态 ---------------- */
 function newState() {
   return {
-    v: 1,
+    v: 2,
     name: '陈默',
+    mcGender: 'x',        // m / f / x（不想说）
+    loveGender: 'f',      // f / m —— 三位攻略角色的性别版本
     sceneId: null,
     chapter: '',
     bg: 'night',
@@ -86,7 +89,8 @@ function lsDel(key) { try { localStorage.removeItem(key); } catch (e) {} }
 function snapshot() {
   var s = state;
   return {
-    v: 1, name: s.name, sceneId: s.sceneId, chapter: s.chapter, bg: s.bg,
+    v: 2, name: s.name, mcGender: s.mcGender, loveGender: s.loveGender,
+    sceneId: s.sceneId, chapter: s.chapter, bg: s.bg,
     fav: { wan: s.fav.wan, xia: s.fav.xia, he: s.fav.he },
     stress: s.stress, perf: s.perf,
     flags: JSON.parse(JSON.stringify(s.flags)),
@@ -102,6 +106,8 @@ function restore(data) {
   var n = newState();
   if (!data) return false;
   n.name = data.name || n.name;
+  if (data.mcGender) n.mcGender = data.mcGender;
+  if (data.loveGender) n.loveGender = data.loveGender;
   n.sceneId = data.sceneId || null;
   n.chapter = data.chapter || '';
   n.bg = data.bg || 'night';
@@ -185,9 +191,23 @@ function esc(s) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
   });
 }
+/* 性别代词：三位攻略角色同性别，所以 {ta} 永远无歧义 */
+function taLove() { return state.loveGender === 'm' ? '他' : '她'; }
+function taMC() {
+  if (state.mcGender === 'm') return '他';
+  if (state.mcGender === 'f') return '她';
+  return 'TA';
+}
+
 function fmt(text) {
   var s = String(text == null ? '' : text);
   s = s.replace(/\{name\}/g, state.name || '陈默');
+  s = s.replace(/\{ta\}/g, taLove());
+  s = s.replace(/\{taPlural\}/g, taLove() + '们');
+  s = s.replace(/\{mcTa\}/g, taMC());
+  s = s.replace(/\{girl\}/g, state.loveGender === 'm' ? '男孩' : '女孩');
+  s = s.replace(/\{kid\}/g, state.loveGender === 'm' ? '小伙子' : '小姑娘');
+  s = s.replace(/\{guy\}/g, state.loveGender === 'm' ? '男生' : '女生');
   s = esc(s);
   s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
   s = s.replace(/\[\[([^\]]+)\]\]/g, '<span class="em">$1</span>');
@@ -319,6 +339,73 @@ function setBG(bg, weather) {
   }
 }
 
+/* ---------------- 立绘 ---------------- */
+var CHAR_KEY = { '苏晚': 'wan', '林知夏': 'xia', '顾清和': 'gu', '江迟': 'chiang' };
+var PORTRAIT_MOODS = ['normal', 'smile', 'sad', 'surprise'];
+var curPortrait = '';
+
+/* 情绪关键词：场景没写 mood 时自动推断，写了就以场景为准 */
+var MOOD_WORDS = [
+  ['smile', ['笑了', '笑出来', '笑起来', '微微一笑', '弯起', '眯', '扬起嘴角', '忍不住笑', '笑了一下', '笑得']],
+  ['sad', ['哭', '眼泪', '眼眶', '红了眼', '声音很低', '发抖', '声音很轻', '沉默了很久', '别过脸', '鼻音', '哽']],
+  ['surprise', ['愣', '怔', '睁大', '停了一瞬', '顿住', '惊讶', '突然抬头', '没想到', '没想到']]
+];
+
+function inferMood(text) {
+  var t = String(text || '');
+  var best = 'normal', bestN = 0;
+  for (var i = 0; i < MOOD_WORDS.length; i++) {
+    var n = 0, ws = MOOD_WORDS[i][1];
+    for (var j = 0; j < ws.length; j++) {
+      var idx = t.indexOf(ws[j]);
+      while (idx >= 0) { n++; idx = t.indexOf(ws[j], idx + 1); }
+    }
+    if (n > bestN) { bestN = n; best = MOOD_WORDS[i][0]; }
+  }
+  return bestN > 0 ? best : 'normal';
+}
+
+function portraitSrc(who, mood) {
+  var key = CHAR_KEY[who];
+  if (!key) return null;
+  var g = (key === 'chiang') ? 'm' : (state.loveGender === 'm' ? 'm' : 'f');
+  var m = PORTRAIT_MOODS.indexOf(mood) >= 0 ? mood : 'normal';
+  return 'assets/portraits/' + key + '_' + g + '_' + m + '.svg';
+}
+
+function updatePortrait(who, text, mood) {
+  var box = $('portrait'), img = $('portrait-img');
+  if (!box || !img) return;
+  var src = who ? portraitSrc(who, mood || inferMood(text)) : null;
+  if (!src) { hidePortrait(); return; }
+  box.dataset.who = CHAR_KEY[who];
+  if (src !== curPortrait) {
+    img.setAttribute('src', src);
+    try { img.src = src; } catch (e) {}
+    img.setAttribute('alt', who);
+    curPortrait = src;
+    box.classList.remove('on');
+    void box.offsetWidth;         // 强制重排，让淡入动画重新播放
+  }
+  box.classList.add('on');
+}
+
+function hidePortrait() {
+  var box = $('portrait');
+  if (box) box.classList.remove('on');
+  curPortrait = '';
+}
+
+function preloadPortraits() {
+  if (typeof Image !== 'function' || !state.loveGender) return;
+  ['wan', 'xia', 'gu'].forEach(function (k) {
+    PORTRAIT_MOODS.forEach(function (m) {
+      var im = new Image();
+      im.src = 'assets/portraits/' + k + '_' + state.loveGender + '_' + m + '.svg';
+    });
+  });
+}
+
 /* ===========================================================
    场景推进
    =========================================================== */
@@ -341,9 +428,12 @@ function goto(id) {
 
   updateHUD();
 
-  var line = { who: sc.who || null, text: typeof sc.text === 'function' ? sc.text(state) : sc.text };
-  state.hist.push({ who: line.who, text: flatten(line.text) });
+  var rawText = typeof sc.text === 'function' ? sc.text(state) : sc.text;
+  var line = { who: sc.who || null, text: rawText };
+  state.hist.push({ who: line.who, text: flatten(rawText) });
   if (state.hist.length > MAX_HIST) state.hist.splice(0, state.hist.length - MAX_HIST);
+
+  updatePortrait(sc.who, flatten(rawText), sc.mood);
 
   // 终止场景（结局）
   if (sc.ending) {
@@ -519,7 +609,9 @@ function finishEnding(endId) {
 function summaryLine() {
   return '苏晚 ' + state.fav.wan + ' · 林知夏 ' + state.fav.xia + ' · 顾清和 ' + state.fav.he +
     ' ｜ 压力 ' + state.stress + ' · 业绩 ' + state.perf +
-    ' ｜ 线索 ' + state.clues.length + '/3 ｜ 图鉴 ' + Object.keys(gallery).length + '/' + endingList().length;
+    ' ｜ 线索 ' + state.clues.length + '/3 ｜ 图鉴 ' + Object.keys(gallery).length + '/' + endingList().length +
+    ' ｜ 本局：' + (state.mcGender === 'm' ? '男主角' : state.mcGender === 'f' ? '女主角' : '性别未说明') +
+    ' × 攻略对象' + (state.loveGender === 'm' ? '男生' : '女生');
 }
 
 function endingList() {
@@ -571,7 +663,9 @@ function refreshTitle() {
   var btn = $('btn-continue');
   if (btn) btn.disabled = !auto;
   if ($('progress-line')) {
-    $('progress-line').textContent = '结局 ' + got + '/' + list.length + ' · 本次探索 ' + pct + '%';
+    $('progress-line').textContent = '结局 ' + got + '/' + list.length +
+      ' · 本次探索 ' + pct + '%' +
+      (state.sceneId ? ' · ' + (state.loveGender === 'm' ? '男生版' : '女生版') : '');
   }
   if ($('gallery-badge')) $('gallery-badge').textContent = got + '/' + list.length;
 }
@@ -678,17 +772,18 @@ function boot() {
     if (t) {
       var act = t.dataset.act;
       sfx('tap');
-      if (act === 'new')            { show('screen-name'); setTimeout(function(){ $('name-input').focus(); }, 120); }
+      if (act === 'new')            { setup.mcGender = state.mcGender || 'x'; setup.loveGender = state.loveGender || 'f';
+                                      syncSetupUI(); show('screen-name'); setTimeout(function(){ $('name-input').focus(); }, 120); }
       else if (act === 'continue')  { doContinue(); }
       else if (act === 'gallery')   { renderGallery(); show('screen-gallery'); }
       else if (act === 'settings')  { openSettings(); }
       else if (act === 'share')     { share(); }
-      else if (act === 'back-title'){ stopTyping(); show('screen-title'); document.body.dataset.bg = 'night'; refreshTitle(); }
+      else if (act === 'back-title'){ stopTyping(); hidePortrait(); show('screen-title'); document.body.dataset.bg = 'night'; refreshTitle(); }
       else if (act === 'confirm-name') { confirmName(); }
       else if (act === 'restart')   { newGame(); }
       else if (act === 'close-modal') { closeModal(); }
       else if (act === 'wipe')      { wipeAll(); }
-      else if (act === 'quit')      { autoSave(); show('screen-title'); document.body.dataset.bg = 'night'; refreshTitle(); }
+      else if (act === 'quit')      { autoSave(); hidePortrait(); show('screen-title'); document.body.dataset.bg = 'night'; refreshTitle(); }
       else if (act === 'backlog')   { openBacklog(); }
       else if (act === 'saves')     { openSaves('save'); }
       return;
@@ -710,8 +805,15 @@ function boot() {
 
     var seg = ev.target.closest('.seg button');
     if (seg) {
-      var grp = seg.closest('.seg').dataset.seg;
+      var segBox = seg.closest('.seg');
+      var grp = segBox.dataset.seg;
       if (grp === 'speed') { settings.speed = seg.dataset.val; saveSettings(); openSettings(); }
+      else if (grp === 'mcGender' || grp === 'loveGender') {
+        setup[grp] = seg.dataset.val;
+        var btns = segBox.querySelectorAll('button');
+        for (var bi = 0; bi < btns.length; bi++) btns[bi].classList.toggle('on', btns[bi] === seg);
+        updateSetupHint();
+      }
       return;
     }
     var sw = ev.target.closest('[data-toggle]');
@@ -784,14 +886,43 @@ function boot() {
 function confirmName() {
   var v = ($('name-input').value || '').trim().slice(0, 8) || '陈默';
   state.name = v;
+  state.mcGender = setup.mcGender;
+  state.loveGender = setup.loveGender;
   newGame();
+}
+
+var SETUP_HINT = {
+  'x|f': '不说明性别，把三位都当作{ta}来相处。三条线的剧情、秘密和结局完全一样。',
+  'x|m': '不说明性别，三位角色会是男生的版本。'
+};
+function loveWord() { return setup.loveGender === 'm' ? '男生' : '女生'; }
+function mcWord() { return setup.mcGender === 'm' ? '男生' : setup.mcGender === 'f' ? '女生' : '不想说'; }
+function updateSetupHint() {
+  var h = $('setup-hint');
+  if (!h) return;
+  h.textContent = '你：' + mcWord() + ' ｜ 攻略对象：' + loveWord() +
+    '。三位角色的剧情、秘密与九个结局完全一样，只换成对应性别的立绘与称呼。';
+}
+function syncSetupUI() {
+  var boxes = document.querySelectorAll('.seg[data-seg]');
+  for (var i = 0; i < boxes.length; i++) {
+    var grp = boxes[i].dataset.seg;
+    if (grp !== 'mcGender' && grp !== 'loveGender') continue;
+    var btns = boxes[i].querySelectorAll('button');
+    for (var j = 0; j < btns.length; j++) btns[j].classList.toggle('on', btns[j].dataset.val === setup[grp]);
+  }
+  updateSetupHint();
 }
 
 function newGame() {
   var nm = state.name || '陈默';
+  var mg = state.mcGender, lg = state.loveGender;
   state = newState();
   state.name = nm;
+  state.mcGender = mg || 'x';
+  state.loveGender = lg || 'f';
   lsDel(KEY_AUTO);
+  preloadPortraits();
   resumeGame();
   goto('start');
 }
@@ -807,6 +938,7 @@ function resumeGame() {
   show('screen-game');
   setBG(state.bg || 'night');
   updateHUD();
+  preloadPortraits();
 }
 
 function wipeAll() {

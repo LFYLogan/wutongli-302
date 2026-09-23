@@ -34,16 +34,39 @@
   </div>
 </section>
 
-<!-- ============ 角色命名 ============ -->
+<!-- ============ 开局设定 ============ -->
 <section id="screen-name" class="screen">
-  <div class="title-inner">
+  <div class="title-inner setup">
     <p class="title-kicker">入职登记表</p>
-    <h2 class="title-main small">你叫什么名字？</h2>
+    <h2 class="title-main small">你是谁？</h2>
     <p class="title-sub">星芒文化创意部 · 4A 区 07 号工位 · 已为你保留</p>
-    <input id="name-input" class="name-input" type="text" maxlength="8" value="陈默" autocomplete="off" spellcheck="false">
-    <p class="title-hint" id="name-hint">最多 8 个字，可以是任何名字。</p>
+
+    <div class="setup-row">
+      <label class="setup-label" for="name-input">名字</label>
+      <input id="name-input" class="name-input" type="text" maxlength="8" value="陈默" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="setup-row">
+      <span class="setup-label">我的性别<small>只影响别人怎么称呼你</small></span>
+      <div class="seg seg-lg" data-seg="mcGender">
+        <button data-val="m">男生</button>
+        <button data-val="f">女生</button>
+        <button data-val="x" class="on">不想说</button>
+      </div>
+    </div>
+
+    <div class="setup-row">
+      <span class="setup-label">我想攻略<small>三位角色会换成对应的性别版本</small></span>
+      <div class="seg seg-lg" data-seg="loveGender">
+        <button data-val="f" class="on">女生</button>
+        <button data-val="m">男生</button>
+      </div>
+    </div>
+
+    <p class="title-hint" id="setup-hint">无论怎么选，三条线的剧情、秘密和结局都完全一样。</p>
+
     <nav class="title-menu row">
-      <button class="btn btn-primary" data-act="confirm-name">确 认</button>
+      <button class="btn btn-primary" data-act="confirm-name">开 始 故 事</button>
       <button class="btn" data-act="back-title">返 回</button>
     </nav>
   </div>
@@ -69,6 +92,9 @@
   <main class="stage" id="stage">
     <div class="stage-vignette"></div>
     <div class="stage-weather" id="stage-weather"></div>
+    <div class="portrait" id="portrait" aria-hidden="true">
+      <img id="portrait-img" alt="">
+    </div>
   </main>
 
   <div class="textwrap">
