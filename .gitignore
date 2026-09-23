@@ -2,6 +2,10 @@
 node_modules/
 package-lock.json
 
-# 立绘审阅用的中间产物
+# 立绘审阅与浏览器调试的中间产物
 tools/_sheet.svg
 tools/_sheet.png
+tools/_*.png
+tools/_dom.html
+_debug.html
+_img.html

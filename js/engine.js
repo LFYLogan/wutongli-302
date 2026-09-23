@@ -343,6 +343,7 @@ function setBG(bg, weather) {
 var CHAR_KEY = { '苏晚': 'wan', '林知夏': 'xia', '顾清和': 'gu', '江迟': 'chiang' };
 var PORTRAIT_MOODS = ['normal', 'smile', 'sad', 'surprise'];
 var curPortrait = '';
+var enterTimer = null;
 
 /* 情绪关键词：场景没写 mood 时自动推断，写了就以场景为准 */
 var MOOD_WORDS = [
@@ -384,15 +385,18 @@ function updatePortrait(who, text, mood) {
     try { img.src = src; } catch (e) {}
     img.setAttribute('alt', who);
     curPortrait = src;
-    box.classList.remove('on');
-    void box.offsetWidth;         // 强制重排，让淡入动画重新播放
+    box.classList.remove('enter');
+    void box.offsetWidth;         // 强制重排，让入场动画重新播放
   }
-  box.classList.add('on');
+  box.classList.remove('hide');
+  box.classList.add('enter');
+  if (enterTimer) clearTimeout(enterTimer);
+  enterTimer = setTimeout(function () { box.classList.remove('enter'); }, 640);
 }
 
 function hidePortrait() {
   var box = $('portrait');
-  if (box) box.classList.remove('on');
+  if (box) box.classList.add('hide');
   curPortrait = '';
 }
 

@@ -103,30 +103,40 @@ body[data-bg="room"]::after,
 body[data-bg="night"]::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.22;
   background-image:radial-gradient(rgba(255,255,255,.09) 1px, transparent 1px);background-size:3px 3px}
 
-/* ---------- 立绘 ---------- */
+/* ---------- 立绘 ----------
+   注意：.portrait 必须显式给出宽度。
+   只设 height + right + width:auto 时，绝对定位元素会走 shrink-to-fit，
+   而百分比高度在推导首选宽度时会被当成 auto，浏览器布局与绘制算出的
+   结果可能不一致（实测会渲染成原图七成大小并贴右边缘）。
+   这里用 width + aspect-ratio 把尺寸彻底钉死。 */
 .portrait{
-  position:absolute;bottom:-6px;right:2%;
-  height:min(96%,460px);
-  opacity:0;transform:translateY(18px) scale(.985);
-  transition:opacity .5s ease, transform .6s cubic-bezier(.2,.9,.25,1);
+  position:absolute;bottom:0;right:4%;
+  width:min(44%,380px);
+  height:100%;
+  opacity:1;                       /* 默认可见：动效只是装饰，不承担"能不能显示" */
+  transition:opacity .4s ease;
   pointer-events:none;
   filter:drop-shadow(0 18px 40px rgba(0,0,0,.55));
 }
-.portrait.on{opacity:1;transform:none;animation:breathe 7s ease-in-out infinite}
+.portrait.hide{opacity:0}
+.portrait img{
+  width:100%;height:100%;display:block;object-fit:contain;
+  animation:breathe 7s ease-in-out infinite;
+}
 @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.portrait img{height:100%;width:auto;display:block}
+@keyframes portraitIn{from{opacity:0}to{opacity:1}}
+.portrait.enter{animation:portraitIn .5s ease}
 
 @media(max-width:619px){
-  .portrait{right:auto;left:50%;transform:translateX(-50%) translateY(18px);
-    height:min(88%,360px);bottom:-14px}
-  .portrait.on{animation:none;transform:translateX(-50%)}
-  .portrait img{opacity:.95}
+  .portrait{right:auto;left:50%;transform:translateX(-50%);
+    width:min(78%,330px);height:96%;bottom:-4px}
+  .portrait img{opacity:.96}
 }
 @media(min-width:900px){
-  .portrait{right:8%;height:min(98%,520px)}
+  .portrait{right:6%;width:min(40%,390px)}
 }
 @media(max-height:560px){
-  .portrait{height:min(92%,300px);bottom:-18px}
+  .portrait{width:min(32%,250px)}
 }
 
 /* ---------- 开局设定 ---------- */

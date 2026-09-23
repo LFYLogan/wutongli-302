@@ -319,7 +319,8 @@ function auditRender(cfg, pick, label) {
     checkText(textEl.innerHTML);
 
     const src = pImg.getAttribute('src');
-    if (pBox.classList.contains('on') && src) {
+    /* 立绘默认可见，靠 .hide 隐藏（动效不承担"能不能显示"） */
+    if (!pBox.classList.contains('hide') && src) {
       portraitScreens++;
       speakers.add(def.who || '?');
       if (!existsSync(join(ROOT, src))) missingArt.add(src);
